@@ -1,0 +1,91 @@
+#######################################################
+## You almost certainly want to customize these options
+
+# root password
+d-i passwd/root-password password r00tme
+d-i passwd/root-password-again password r00tme
+# or encrypted using a mkpasswd hash.
+#d-i passwd/root-password-crypted password $6$4Ta5TcioISpxWZ$mCMv.pZepAYDuu4FVEXUgEqlYzZKtFeUCBF9jV.2N3q.XcCq0P3ZIuDHHGBMy6JLffnTbYD0c47ihJFuUj4/R1
+
+
+# first user
+d-i passwd/user-fullname string Admin
+user-setup-udeb passwd/username string  admin
+d-i passwd/user-password-again password insecure
+d-i passwd/user-password password insecure
+# or encrypted using a mkpasswd hash.
+#d-i passwd/user-password-crypted password $6$dNn6l9/y3.$kUG55u./ZLFmaGh4tnMG81pThAxjRxgYWKp.nqP5pO3e3ic.vZ9D4/U6.ACuXine.TJEKXnhG.1RryYD6ifx/0
+
+###############################################
+## You probably want to customize these options
+
+# hostname
+d-i netcfg/get_hostname string amnesiac
+d-i netcfg/get_domain string amnesiac
+
+# Locality
+d-i countrychooser/country-name select  United States
+d-i debian-installer/locale string en_US
+d-i time/zone string US/Pacific
+
+#######################################################
+## You probably don't want to change anything down here
+
+# additional repo
+#d-i apt-setup/local0/key string http://apt.example.com/repo.pub
+#d-i apt-setup/local0/repository string   http://apt.example.com/local/ stable main
+#d-i apt-setup/local0/source boolean false
+
+# preseed
+d-i auto-install/enable boolean true
+d-i preseed/file  string  /cdrom/preseed.txt
+d-i preseed/interactive boolean false
+d-i debconf/priority  select  high
+
+# partition
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+d-i partman/confirm_write_new_label boolean true
+partman-auto  partman-auto/automatically_partition  select
+partman-auto  partman-auto/choose_recipe  select  All files in one partition (recommended for new users)
+partman-auto  partman-auto/init_automatically_partition select  Guided - use entire disk
+partman-auto  partman-auto/method string  regular
+partman-base  partman/confirm boolean true
+partman-crypto  partman-crypto/warn_erase boolean true
+partman-partitioning  partman-partitioning/confirm_copy boolean
+partman-partitioning  partman-partitioning/confirm_resize boolean false
+
+# debian archive mirror
+apt-mirror-setup  apt-setup/contrib boolean true
+apt-mirror-setup  apt-setup/non-free  boolean true
+apt-mirror-setup  apt-setup/use_mirror  boolean true
+d-i mirror/country string enter information manually
+d-i mirror/http/hostname string http.us.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+d-i mirror/country string enter information manually
+d-i mirror/http/proxy string
+
+# tasksel
+tasksel  tasksel/first  multiselect
+tasksel  tasksel/tasks  multiselect
+tasksel  tasksel/desktop  multiselect
+# Individual additional packages to install
+d-i pkgsel/include string openssh-server avahi-daemon
+# Whether to upgrade packages after debootstrap.
+# Allowed values: none, safe-upgrade, full-upgrade
+d-i pkgsel/upgrade select full-upgrade
+# popularity-contest
+d-i popularity-contest/participate  boolean false
+# grub
+grub-installer  grub-installer/bootdev  string
+grub-installer  grub-installer/grub2_instead_of_grub_legacy boolean true
+grub-installer  grub-installer/only_debian  boolean true
+grub-installer  grub-installer/skip boolean false
+# late commands
+d-i preseed/late_command string in-target cp /usr/share/doc/avahi-daemon/examples/ssh.service /etc/avahi/services/
+# finish install
+d-i finish-install/reboot_in_progress note
+finish-install  finish-install/reboot_in_progress note
