@@ -1,39 +1,52 @@
-INSTALLERBASEIMAGE=debian-7.1.0-amd64-netinst.iso
+DEBIAN_VERSION=7.6.0
+ARCH=amd64
+
+INSTALLERBASEIMAGE=debian-$(DEBIAN_VERSION)-$(ARCH)-netinst.iso
+URL=http://cdimage.debian.org/debian-cd/$(DEBIAN_VERSION)/$(ARCH)/iso-cd
 
 CURL=curl
-CURLFLAGS=--location --progress-bar --output
-MKISOFS=mkisofs
-MKISOFSFLAGS=-r -J -no-emul-boot -boot-load-size 4 -boot-info-table -b isolinux/isolinux.bin -c isolinux/boot.cat ./.autoinstall
+CURLFLAGS=--location --progress-bar
+GENISOIMAGEFLAGS=-r -J -no-emul-boot -boot-load-size 4 -boot-info-table -b isolinux/isolinux.bin -c isolinux/boot.cat ./.autoinstall
 RSYNC=rsync
-RSYNCFLAGS=-a -H --exclude=TRANS.TBL .mnt/ .autoinstall/
+RSYNCFLAGS=-a -H --exclude=TRANS.TBL
 
-all: autoinstall.iso
+UNAME=$(shell uname)
 
-$(INSTALLERBASEIMAGE):
-	$(CURL) $(CURLFLAGS) $@
-
-.autoinstall/isolinux/isolinux.bin: $(INSTALLERBASEIMAGE)
-	# If running SunOS this step currently needs to be done manually with the following commands:
-	# lofiadm -a ./debian-7.1.0-amd64-netinst.iso 
-	# mount -o ro -F hsfs /dev/lofi/2 .mnt
-	# rsync -a -H --exclude=TRANS.TBL .mnt/ .autoinstall/
-	mkdir .mnt
-	fuseiso $< .mnt
-	rsync -a -H --exclude=TRANS.TBL /mnt/ ~/autoinstall/
-	fusermount -u .mnt
-	rmdir .mnt
-	touch preseed.txt isolinux.cfg
-
-.autoinstall/preseed.txt: preseed.txt
-	cp $< $@
-
-.autoinstall/isolinux/isolinux.cfg: isolinux.cfg
-	cp $< $@
+ifeq ($(UNAME),Linux)
+GENISOIMAGE=genisoimage
+MOUNT=fuseiso $< .mnt
+UNMOUNT=fusermount -u .mnt
+endif
+ifeq ($(UNAME),SunOS)
+GENISOIMAGE=mkisofs
+MOUNT=mount -o ro -F hsfs $$(lofiadm -a ./$<) .mnt
+UNMOUNT=umount .mnt ; lofiadm -d ./$<
+endif
+ifeq ($(UNAME),Darwin)
+MOUNT=hdiutil mount -mountpoint .mnt $<
+UNMOUNT=hdiutil eject .mnt
+endif
 
 autoinstall.iso: .autoinstall/preseed.txt .autoinstall/isolinux/isolinux.cfg
-	$(MKISOFS) -o $@ $(MKISOFSFLAGS)
+	$(GENISOIMAGE) -o $@ $(GENISOIMAGEFLAGS)
+
+.autoinstall/preseed.txt: preseed.txt .autoinstall/md5sum.txt
+	cp $< $@
+
+.autoinstall/isolinux/isolinux.cfg: isolinux.cfg .autoinstall/md5sum.txt
+	cp $< $@
+
+.autoinstall/md5sum.txt: $(INSTALLERBASEIMAGE)
+	mkdir .mnt
+	$(MOUNT)
+	$(RSYNC) $(RSYNCFLAGS) .mnt/ .autoinstall/
+	chmod -R +w .autoinstall
+	$(UNMOUNT)
+	rmdir .mnt
+	touch $@
+
+$(INSTALLERBASEIMAGE):
+	$(CURL) $(CURLFLAGS) --output $@ $(URL)/$@
 
 clean:
-	$(RM) .autoinstall autoinstall.iso $(INSTALLERBASEIMAGE)
-
-.PHONY: all
+	$(RM) -r .autoinstall autoinstall.iso $(INSTALLERBASEIMAGE)
