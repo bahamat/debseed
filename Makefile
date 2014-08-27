@@ -22,10 +22,6 @@ GENISOIMAGE=mkisofs
 MOUNT=mount -o ro -F hsfs $$(lofiadm -a ./$<) .mnt
 UNMOUNT=umount .mnt ; lofiadm -d ./$<
 endif
-ifeq ($(UNAME),Darwin)
-MOUNT=hdiutil mount -mountpoint .mnt $<
-UNMOUNT=hdiutil eject .mnt
-endif
 
 autoinstall.iso: .autoinstall/preseed.txt .autoinstall/isolinux/isolinux.cfg
 	$(GENISOIMAGE) -o $@ $(GENISOIMAGEFLAGS)
